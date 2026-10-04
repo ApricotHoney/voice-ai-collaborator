@@ -105,7 +105,9 @@ def db_transcriptions():
     rows = []
     try:
         con = sqlite3.connect(base); con.row_factory = sqlite3.Row
-        for r in con.execute("SELECT id, created_at, timestamp, audio_duration_ms, text FROM transcriptions ORDER BY created_at DESC"):
+        cols = {c[1] for c in con.execute("PRAGMA table_info(transcriptions)")}
+        dur_col = "audio_duration_ms" if "audio_duration_ms" in cols else ("duration" if "duration" in cols else "NULL")
+        for r in con.execute(f"SELECT id, created_at, timestamp, {dur_col} AS audio_duration_ms, text FROM transcriptions ORDER BY created_at DESC"):
             rows.append({"id": r["id"], "ts": r["created_at"] or r["timestamp"],
                         "dur": r["audio_duration_ms"] or 0, "text": (r["text"] or "")})
         con.close()
