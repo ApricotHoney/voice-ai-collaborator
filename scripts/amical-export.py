@@ -59,9 +59,13 @@ def main():
 
     con, tmp = open_ro_copy(args.db)
     os.makedirs(OUT_DIR, exist_ok=True)
+    # Amical のバージョンによって列名が異なる（1.11.x は duration / 新しい版は audio_duration_ms）。
+    cols = {r[1] for r in con.execute("PRAGMA table_info(transcriptions)")}
+    dur_col = "audio_duration_ms" if "audio_duration_ms" in cols else ("duration" if "duration" in cols else "NULL")
+    sel = [c for c in ("id", "text", "created_at", "timestamp", "speech_model",
+                       "formatting_model", "audio_file", "detected_language") if c in cols]
     rows = con.execute(
-        "SELECT id, text, created_at, timestamp, speech_model, formatting_model, "
-        "audio_file, audio_duration_ms, detected_language "
+        f"SELECT {', '.join(sel)}, {dur_col} AS audio_duration_ms "
         "FROM transcriptions WHERE text IS NOT NULL AND trim(text) <> '' "
         "ORDER BY created_at ASC"
     ).fetchall()
